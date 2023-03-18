@@ -51,7 +51,7 @@ for i, file_path in enumerate(file_paths):
     data = librosa.util.fix_length(data, size=int(NEAREST_UP_DURATION * sample_rate))
 
     file_name = ah.get_filename(file_path)
-    _, extension = ah.split_filename(file_name)
+    _, extension = ah.split_file_name(file_name)
     command = ah.get_label(file_path)
     file_path_new = os.path.join(SAVE_DATA,command, file_name)
 

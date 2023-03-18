@@ -17,25 +17,6 @@ import noisereduce as nr
 import AudioHelper as ah
 
 
-def add_white_noise(data, noise_percentage_factor):
-    noise = np.random.normal(0, data.std(), data.size)
-    augmented_data = data + noise * noise_percentage_factor
-    return augmented_data
-
-
-def pitch_scale(signal, sr, semitones_factor):
-    return librosa.effects.pitch_shift(y=signal, sr=sr, n_steps=semitones_factor)
-
-
-def random_gain(data, gain_factor):
-    augmented_data = data * gain_factor
-    return augmented_data
-
-
-def invert_polarity(signal):
-    return signal * -1
-
-
 def reduce_noise(data, sample_rate, noisy_part_start=0.0, noisy_part_end=1.0):
     # perform noise reduction
     noisy_part = data[int(noisy_part_start * sample_rate):int(noisy_part_end * sample_rate)]
@@ -92,69 +73,6 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
     # Print New Line on Complete
     if iteration == total:
         print()
-
-
-# Generate and save spectrogram
-def build_and_save_spectrogram(data):
-    n_fft = 2048
-    hop_length = 512
-    n_mels = 256
-
-    MS = librosa.feature.melspectrogram(y=data, sr=sample_rate, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels,
-                                        window="hann")
-    MS_DB = librosa.power_to_db(MS, ref=np.max)
-
-    return MS_DB
-
-
-def save_spectrogram(spectrogram, file_path):
-    fig = plt.Figure()
-    ax = fig.add_subplot(111)
-    p = librosa.display.specshow(librosa.amplitude_to_db(spectrogram, ref=np.max), ax=ax)
-    fig.savefig(file_path)
-
-
-def get_new_command_label(commands, new_label: str, separator='-') -> str:
-    last_command = commands[-1]
-    last_command_iter = int(last_command.split(separator)[0])
-    last_command_iter += 1
-    return f"{last_command_iter:02d}{separator}{new_label}"
-
-
-def get_file_name(file_path: str) -> str:
-    return os.path.normpath(file_path).split(os.sep)[-1].split('.')[0]
-
-
-# DESCRIPTION
-def get_next_path(save_main_dir: str, command_label: str, file_name: str, extension="wav", separator='_'):
-    flag = False
-    iterator = 0
-    path_new = os.path.join(save_main_dir, command_label, file_name + '.' + extension)
-
-    while not flag:
-
-        path_temp = os.path.normpath(path_new).split(os.sep)
-        path_temp[-1] = file_name[:] + f"{separator}{iterator:02d}" + '.' + extension
-        path_temp = os.path.join(*path_temp)
-
-        iterator += 1
-
-        if not os.path.exists(path_temp):
-            flag = True
-            path_new = path_temp
-
-    return path_new
-
-
-# Save wav file
-def save_audio(file_path: str, data, sample_rate, subtype="PCM_16"):
-    head, _ = os.path.split(file_path)
-
-    if os.path.exists(head) == False:
-        os.makedirs(head)
-
-    # Save file
-    sf.write(file=file_path, data=data, samplerate=sample_rate, subtype=subtype)
 
 
 # Shift audio to the left plus assigned offset of given frame. Offset 0.0 - 0 %
@@ -305,9 +223,9 @@ def thread_loop_task(start, end, data_set):
         for base_data in base_dataset:
             base_data_center = shift_audio_center(base_data, index_start, index_end, NEAREST_UP_DURATION, sample_rate)
 
-            file_name = get_file_name(file_path)
+            file_name = ah.get_file_name(file_path)
             command = ah.get_label(file_path)
-            file_name_new = get_next_path(SAVE_DATA, command, file_name)
+            file_name_new = ah.get_next_path(SAVE_DATA, command, file_name)
 
             base_data_center = librosa.util.fix_length(base_data_center, size=int(NEAREST_UP_DURATION * sample_rate))
             ah.save_audio(file_name_new, base_data_center, sample_rate)
@@ -322,24 +240,24 @@ def thread_loop_task(start, end, data_set):
                                                    offset)
 
                 semitone_factor = random.uniform(SEMITONES_FACTOR_MIN, SEMITONES_FACTOR_MAX)
-                data_shift_left = pitch_scale(data_shift_left, SAMPLE_RATE_REDUCTION, semitone_factor)
+                data_shift_left = ah.pitch_scale(data_shift_left, SAMPLE_RATE_REDUCTION, semitone_factor)
 
                 gain_factor = 0
                 while gain_factor == 0:
                     gain_factor = random.uniform(GAIN_FACTOR_MIN, GAIN_FACTOR_MAX)
 
-                data_shift_left = random_gain(data_shift_left, gain_factor)
+                data_shift_left = ah.random_gain(data_shift_left, gain_factor)
 
                 noise_percentage_factor = random.uniform(NOISE_PERCENTAGE_FACTOR_MIN, NOISE_PERCENTAGE_FACTOR_MAX)
-                data_shift_left = add_white_noise(data_shift_left, noise_percentage_factor)
+                data_shift_left = ah.add_white_noise(data_shift_left, noise_percentage_factor)
 
 
-                file_name = get_file_name(file_path)
+                file_name = ah.get_file_name(file_path)
                 command = ah.get_label(file_path)
-                file_name_new = get_next_path(SAVE_DATA, command, file_name)
+                file_name_new = ah.get_next_path(SAVE_DATA, command, file_name)
 
                 data_shift_left = librosa.util.fix_length(data_shift_left, size=int(NEAREST_UP_DURATION * sample_rate))
-                save_audio(file_name_new, data_shift_left, SAMPLE_RATE_REDUCTION)
+                ah.save_audio(file_name_new, data_shift_left, SAMPLE_RATE_REDUCTION)
 
             # Shift right
             for offset in percentage_offset[:]:
@@ -348,30 +266,32 @@ def thread_loop_task(start, end, data_set):
                                                     offset)
 
                 semitone_factor = random.uniform(SEMITONES_FACTOR_MIN, SEMITONES_FACTOR_MAX)
-                data_shift_right = pitch_scale(data_shift_right, SAMPLE_RATE_REDUCTION, semitone_factor)
+                data_shift_right = ah.pitch_scale(data_shift_right, SAMPLE_RATE_REDUCTION, semitone_factor)
 
                 gain_factor = 0
                 while gain_factor == 0:
                     gain_factor = random.uniform(GAIN_FACTOR_MIN, GAIN_FACTOR_MAX)
 
-                data_shift_right = random_gain(data_shift_right, gain_factor)
+                data_shift_right = ah.random_gain(data_shift_right, gain_factor)
 
                 noise_percentage_factor = random.uniform(NOISE_PERCENTAGE_FACTOR_MIN, NOISE_PERCENTAGE_FACTOR_MAX)
-                data_shift_right = add_white_noise(data_shift_right, noise_percentage_factor)
+                data_shift_right = ah.add_white_noise(data_shift_right, noise_percentage_factor)
 
-                file_name = get_file_name(file_path)
+                file_name = ah.get_file_name(file_path)
                 command = ah.get_label(file_path)
-                file_name_new = get_next_path(SAVE_DATA, command, file_name)
+                file_name_new = ah.get_next_path(SAVE_DATA, command, file_name)
 
                 data_shift_right = librosa.util.fix_length(data_shift_right,
                                                           size=int(NEAREST_UP_DURATION * sample_rate))
-                save_audio(file_name_new, data_shift_right, SAMPLE_RATE_REDUCTION)
+                ah.save_audio(file_name_new, data_shift_right, SAMPLE_RATE_REDUCTION)
+        
+        printProgressBar(i,end)
 
 
 
-LOAD_DATA = '..\\DATA\\data_org_3'
+LOAD_DATA = 'C:\\Python Projects\\VoiceCommandClassification\\DATA\\data_org_23'
 
-SAVE_DATA = '..\\DATA\\data_aug_3'
+SAVE_DATA = '..\\DATA\\data_aug_23'
 
 SAMPLE_RATE = 44100  # HZ
 SAMPLE_RATE_REDUCTION = 16000
@@ -390,9 +310,9 @@ GAIN_FACTOR_MIN = 1.0
 GAIN_FACTOR_MAX = 10.0
 
 NOISE_PERCENTAGE_FACTOR_MIN = 0.00
-NOISE_PERCENTAGE_FACTOR_MAX = 0.02
+NOISE_PERCENTAGE_FACTOR_MAX = 0.01
 
-SHIFT_PERCENTAGE_OFFSET = [0.0, 0.05, 0.10, 0.15]
+SHIFT_PERCENTAGE_OFFSET = [0.0, 0.10, 0.20]
 
 if __name__ == "__main__":
 
@@ -437,7 +357,7 @@ if __name__ == "__main__":
     ah.prepare_save_dir(SAVE_DATA, commands)
 
     threads = []
-    num_threads = 16
+    num_threads = 2
     total_tasks = file_paths_length
     tasks_per_thread = total_tasks // num_threads
 
