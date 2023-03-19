@@ -5,7 +5,7 @@ FRAMES_PER_BUFFER = 512
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 FRAME_RATE = 16000
-DURATION = 2
+DURATION = 3
 
 p = pyaudio.PyAudio()
 
