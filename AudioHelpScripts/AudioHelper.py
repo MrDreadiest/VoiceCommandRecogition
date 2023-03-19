@@ -22,17 +22,20 @@ def add_white_noise(data, noise_percentage_factor):
     return augmented_data
 
 
-def pitch_scale(signal, sr, semitones_factor):
-    return librosa.effects.pitch_shift(y=signal, sr=sr, n_steps=semitones_factor)
+def pitch_scale(data, sr, semitones_factor):
+    return librosa.effects.pitch_shift(y=data, sr=sr, n_steps=semitones_factor)
 
 
 def random_gain(data, gain_factor):
-    augmented_data = data * gain_factor
-    return augmented_data
+    return data * gain_factor
 
 
-def invert_polarity(signal):
-    return signal * -1
+def invert_polarity(data):
+    return data * -1
+
+
+def time_stretch(data, rate):
+    return librosa.effects.time_stretch(y=data, rate=rate)
 
 #
 #   Operacje na nazwie i ścieżce pliku
@@ -134,11 +137,33 @@ def prepare_save_dir(mian_save_dir, commands):
             except:
                 pass
 
-
-
-
-
 # Ładowanie pliku audio
 def load_audio(file_path, sample_rate):
     data, _ = librosa.load(file_path, sr=sample_rate)
     return data
+
+
+
+
+
+# Print iterations progress
+def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()

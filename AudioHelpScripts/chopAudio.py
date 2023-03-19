@@ -15,29 +15,6 @@ import soundfile as sf
 import AudioHelper as ah
 
 
-# Print iterations progress
-def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
-    # Print New Line on Complete
-    if iteration == total:
-        print()
-
-
 if __name__ == "__main__":
 
     load_main_dir = sys.argv[1]
@@ -61,7 +38,10 @@ if __name__ == "__main__":
         print(f"Podany folder został utworzony.")
         os.makedirs(save_main_dir)
 
-    files_path = glob(os.path.join(load_main_dir, '*'))
+
+    files_path = glob(os.path.join(load_main_dir, '*\*'))
+
+    print(f"Plikow: {len(files_path)}")
 
     for k, file_path in enumerate(files_path[:]):
         data = ah.load_audio(file_path, sample_rate)
@@ -69,14 +49,22 @@ if __name__ == "__main__":
         frames_per_clip = sample_rate * chop_duration
         number_of_chops = math.floor(data.__len__() / frames_per_clip)
 
+        if number_of_chops == 0:
+            data = librosa.util.fix_length(data, size=int(3 * sample_rate))
+
+            file_name, _= ah.split_file_name(ah.get_file_name(file_path))
+
+            file_path_new = ah.get_next_path(save_main_dir,ah.get_label(file_path),file_name)
+            ah.save_audio(file_path_new, data, sample_rate)
+
         for i in range(0, number_of_chops):
             frame_start = int(i * frames_per_clip)
             frame_end = int((i + 1) * frames_per_clip)
 
             choped_data = data[frame_start: frame_end]
 
-            file_path_new = ah.GetNewFilename(save_main_dir, file_path)
+            file_path_new = ah.get_new_file_name(save_main_dir, file_path)
 
-            ah.SaveAudio(file_path_new, choped_data, sample_rate)
+            ah.save_audio(file_path_new, choped_data, sample_rate)
 
-        printProgressBar(k + 1, files_path.__len__(), prefix='Progress:', suffix='Complete', length=50)
+        ah.printProgressBar(k + 1, files_path.__len__(), prefix='Progress:', suffix='Complete', length=50)

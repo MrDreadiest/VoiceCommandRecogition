@@ -251,6 +251,9 @@ def thread_loop_task(start, end, data_set):
                 noise_percentage_factor = random.uniform(NOISE_PERCENTAGE_FACTOR_MIN, NOISE_PERCENTAGE_FACTOR_MAX)
                 data_shift_left = ah.add_white_noise(data_shift_left, noise_percentage_factor)
 
+                inverse_polarity_rate = random.uniform(INVERSE_POLARITY_MIN, INVERSE_POLARITY_MAX)
+                if (inverse_polarity_rate >= 0.5):
+                    data_shift_left = ah.invert_polarity(data_shift_left)
 
                 file_name = ah.get_file_name(file_path)
                 command = ah.get_label(file_path)
@@ -277,6 +280,10 @@ def thread_loop_task(start, end, data_set):
                 noise_percentage_factor = random.uniform(NOISE_PERCENTAGE_FACTOR_MIN, NOISE_PERCENTAGE_FACTOR_MAX)
                 data_shift_right = ah.add_white_noise(data_shift_right, noise_percentage_factor)
 
+                inverse_polarity_rate = random.uniform(INVERSE_POLARITY_MIN, INVERSE_POLARITY_MAX)
+                if (inverse_polarity_rate >= 0.5):
+                    data_shift_right = ah.invert_polarity(data_shift_right)
+
                 file_name = ah.get_file_name(file_path)
                 command = ah.get_label(file_path)
                 file_name_new = ah.get_next_path(SAVE_DATA, command, file_name)
@@ -285,13 +292,13 @@ def thread_loop_task(start, end, data_set):
                                                           size=int(NEAREST_UP_DURATION * sample_rate))
                 ah.save_audio(file_name_new, data_shift_right, SAMPLE_RATE_REDUCTION)
         
-        printProgressBar(i,end)
-
 
 
 LOAD_DATA = 'C:\\Python Projects\\VoiceCommandClassification\\DATA\\data_org_23'
 
 SAVE_DATA = '..\\DATA\\data_aug_23'
+
+NUM_THREADS = 2
 
 SAMPLE_RATE = 44100  # HZ
 SAMPLE_RATE_REDUCTION = 16000
@@ -312,7 +319,13 @@ GAIN_FACTOR_MAX = 10.0
 NOISE_PERCENTAGE_FACTOR_MIN = 0.00
 NOISE_PERCENTAGE_FACTOR_MAX = 0.01
 
-SHIFT_PERCENTAGE_OFFSET = [0.0, 0.10, 0.20]
+TIME_STRETCH_RATE_MIN = 0.5
+TIME_STRETCH_RATE_MAX = 1.5
+
+INVERSE_POLARITY_MIN = 0
+INVERSE_POLARITY_MAX = 1
+
+SHIFT_PERCENTAGE_OFFSET = [0.0, 0.075, 0.15]
 
 if __name__ == "__main__":
 
@@ -357,13 +370,12 @@ if __name__ == "__main__":
     ah.prepare_save_dir(SAVE_DATA, commands)
 
     threads = []
-    num_threads = 2
     total_tasks = file_paths_length
-    tasks_per_thread = total_tasks // num_threads
+    tasks_per_thread = total_tasks // NUM_THREADS
 
-    for i in range(num_threads):
+    for i in range(NUM_THREADS):
         start = i * tasks_per_thread
-        end = (i + 1) * tasks_per_thread if i < num_threads - 1 else total_tasks
+        end = (i + 1) * tasks_per_thread if i < NUM_THREADS - 1 else total_tasks
         t = threading.Thread(target=thread_loop_task, args=(start, end, file_paths))
         threads.append(t)
         t.start()
