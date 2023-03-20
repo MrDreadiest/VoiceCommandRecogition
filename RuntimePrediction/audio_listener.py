@@ -93,12 +93,8 @@ class AudioListenerThread:
                 frames_np = np.frombuffer(b''.join(self.frames), dtype=np.int16)
 
                 if frames_np.__len__() >= self.buffer.__len__():
-                    print("rzut")
                     self.buffer = frames_np[ frames_np.__len__() - self.buffer.__len__():]
-                    self.frames = self.frames[frames_np.__len__() - self.buffer.__len__():]
-
-                #self.buffer[:-self.frames_per_buffer] = self.buffer[self.frames_per_buffer:]
-                #self.buffer[-self.frames_per_buffer:] = array
+                    self.frames = self.frames[1:]
 
 
 
