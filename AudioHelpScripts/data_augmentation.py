@@ -294,16 +294,16 @@ def thread_loop_task(start, end, data_set):
         
 
 
-LOAD_DATA = 'C:\\Python Projects\\VoiceCommandClassification\\DATA\\data_org_23'
+LOAD_DATA = '..\\DATA\\data_org_23'
 
 SAVE_DATA = '..\\DATA\\data_aug_23'
 
-NUM_THREADS = 2
+NUM_THREADS = 16
 
 SAMPLE_RATE = 44100  # HZ
 SAMPLE_RATE_REDUCTION = 16000
 FIX_TIME_DURATION = 3  # SECONDS
-DB_TRIM = 20
+DB_TRIM = 15
 
 AUGM_PARAM_ORG_COPY = True
 AUGM_PARAM_ORG_REDUCE = True
@@ -341,27 +341,31 @@ if __name__ == "__main__":
     print(f"Calculate sample lengths ...")
     lengths_array = np.zeros(file_paths_length)
 
-    # for i, file_path in enumerate(file_paths[:]):
-    #     # Update progress bar
-    #     printProgressBar(i, file_paths_length, prefix='Progress:', suffix='Complete', length=50)
-    #
-    #     # Load data
-    #     data, sample_rate = librosa.load(file_path, sr=SAMPLE_RATE_REDUCTION)
-    #
-    #     # Trim Audio
-    #     data_red_trim = get_red_trim(data, sample_rate, DB_TRIM)
-    #
-    #     lengths_array[i] = librosa.get_duration(y=data_red_trim, sr=sample_rate)
-    #
-    # print("Duration  min: " + str(lengths_array.min()) + file_paths[np.argmin(lengths_array)])
-    # print("Duration  max: " + str(lengths_array.max()) + file_paths[np.argmax(lengths_array)])
-    # print("Duration mean: " + str(lengths_array.mean()))
+    for i, file_path in enumerate(file_paths[:]):
+        # Update progress bar
+        printProgressBar(i, file_paths_length, prefix='Progress:', suffix='Complete', length=50)
+    
+        # Load data
+        data, sample_rate = librosa.load(file_path, sr=SAMPLE_RATE_REDUCTION)
+    
+        # Trim Audio
+        data_red_trim = get_red_trim(data, sample_rate, DB_TRIM)
+    
+        lengths_array[i] = librosa.get_duration(y=data_red_trim, sr=sample_rate)
+    
+    print("Duration  min: " + str(lengths_array.min()) + file_paths[np.argmin(lengths_array)])
+    print("Duration  max: " + str(lengths_array.max()) + file_paths[np.argmax(lengths_array)])
+    print("Duration mean: " + str(lengths_array.mean()))
 
-    # Get nearest upper duration in seconds
-    # NEAREST_UP_DURATION = math.ceil(lengths_array.max()*100)/100
-    # NEAREST_UP_DURATION = math.ceil(lengths_array.max())
 
-    NEAREST_UP_DURATION = 3
+    for i, len in enumerate(lengths_array):
+        if len >= 2.0 :
+            print(f"{len}   {file_paths[i]}")
+    #Get nearest upper duration in seconds
+    #NEAREST_UP_DURATION = math.ceil(lengths_array.max()*100)/100
+    NEAREST_UP_DURATION = math.ceil(lengths_array.max())
+
+    #NEAREST_UP_DURATION = 3
 
     # NEAREST_UP_DURATION = 2
     print(f"NEAREST_UP_DURATION : {NEAREST_UP_DURATION} seconds")

@@ -39,7 +39,7 @@ if __name__ == "__main__":
         os.makedirs(save_main_dir)
 
 
-    files_path = glob(os.path.join(load_main_dir, '*\*'))
+    files_path = glob(os.path.join(load_main_dir, '*.*'))
 
     print(f"Plikow: {len(files_path)}")
 

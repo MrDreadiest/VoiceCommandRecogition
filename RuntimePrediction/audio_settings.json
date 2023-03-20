@@ -1,0 +1,6 @@
+{
+    "frames_per_buffer": 2048,
+    "channels": 1,
+    "frame_rate": 16000,
+    "duration": 3
+}

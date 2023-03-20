@@ -7,7 +7,7 @@ import random
 
 SETTINGS_FILE_UDP = 'udp_settings.json'
 
-class PeriodicSender:
+class UdpSenderThread:
     def __init__(self, interval):
         self.interval = interval
         self.timer = None
