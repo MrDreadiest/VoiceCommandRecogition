@@ -63,6 +63,37 @@ class UpdateTask:
         self.udp_sender.set_msg(xml_data)
 
 
+class GraphUpdateThread:
+    def __init__(self, interval):
+        self.interval = interval
+        self.timer = None
+        self.flag = True
+
+
+
+    def start(self):
+        self.flag = True
+        self.timer = threading.Timer(self.interval, self.run)
+        self.timer.start()
+
+    def stop(self):
+        self.flag = False
+        if self.timer:
+            self.timer.cancel()
+
+    def run(self):
+        try:
+            if self.flag:
+                self.update_graph() # call the function
+                self.start()
+        except KeyboardInterrupt:
+            self.stop()
+
+    def update_graph(self):
+        pass
+
+
+
 def print_asci_bar_chart():
     max_value = max(count for _, count in DATA)
     increment = max_value / 25
@@ -96,19 +127,20 @@ def print_asci_bar_chart():
             pass
 
 
-
 if __name__ == "__main__":
     
     DATA = [
-('Odrzuć broń',0.0),
-('Obróć się',0.0),
-('Na kolana',0.0),
-('Gleba',0.0),
-('Ręce na głowę',0.0),
-('Tło',0.0),
-]
+        ('Odrzuć broń',0.0),
+        ('Obróć się',0.0),
+        ('Na kolana',0.0),
+        ('Gleba',0.0),
+        ('Ręce na głowę',0.0),
+        ('Tło',0.0),
+    ]
 
-    udp_sender = sender.UdpSenderThread(1)
+    frequency = 5 #hz
+
+    udp_sender = sender.UdpSenderThread( 1 )
     udp_sender.start()
 
     audio_listener = al.AudioListenerThread(0)
@@ -116,34 +148,39 @@ if __name__ == "__main__":
 
     tf_helper = tf.TensorFlowHelper()
     predictions = []
+    
+    
+
     try:
         while True:
-            time.sleep(0.1)
+            time.sleep(0.05)
             audio = audio_listener.get_audio()
 
             prediction = tf_helper.get_prediction(audio).numpy()[0].tolist()
 
-            predictions.append(prediction)
+            for i,(label,value) in enumerate(DATA):
+                DATA[i] = (label,prediction[i])
 
-            if(predictions.__len__() == 5):
+            print_asci_bar_chart()
+
+            # predictions.append(prediction)
+
+            # if(predictions.__len__() == frequency):
                 
-                output = np.array(predictions)
-                output = np.sum(output,axis=0)
-                output = output /5
+            #     output = np.array(predictions)
+            #     output = np.mean(output,axis=0)
+
+            #     for i,(label,value) in enumerate(DATA):
+            #         DATA[i] = (label,output[i])
                 
-                for i,(label,value) in enumerate(DATA):
-                    DATA[i] = (label,output[i])
-                
-                print_asci_bar_chart()
+            #     print_asci_bar_chart()
 
-                #print(output)
+            #     root = ET.Element('prediction')
+            #     root.set('values',output)
+            #     xml_data = ET.tostring(root)
+            #     udp_sender.set_msg(xml_data)
 
-                root = ET.Element('prediction')
-                root.set('values',output)
-                xml_data = ET.tostring(root)
-                udp_sender.set_msg(xml_data)
-
-                predictions.clear()
+            #     predictions.clear()
             
 
  
