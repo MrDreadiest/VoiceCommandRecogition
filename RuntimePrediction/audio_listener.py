@@ -48,7 +48,7 @@ class AudioListenerThread:
                 print('The file contains invalid JSON')
                 self.set_flag = False
 
-    def get_data(self):
+    def get_audio(self):
         return self.buffer
 
     def start(self):

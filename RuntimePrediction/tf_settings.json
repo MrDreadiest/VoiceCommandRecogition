@@ -1,0 +1,9 @@
+{
+    "frame_rate":16000,
+    "frame_rate_min":100,
+    "frame_rate_max":8000,
+    "n_fft": 800,
+    "hop_length":320,
+    "n_mels":128,
+    "model":"model-85"
+}

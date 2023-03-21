@@ -55,7 +55,7 @@ class UdpSenderThread:
         self.flag = False
         if self.timer:
             self.timer.cancel()
-            socket.close()
+            self.socket.close()
 
     def run(self):
         try:
