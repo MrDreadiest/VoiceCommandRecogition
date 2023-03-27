@@ -1,34 +1,69 @@
+import TensorflowHelper as tensorflow
+import UdpSender as sender
+
+import AudioHelper as audio_h
+import AudioListener as audio_l
+import MainSettings as settings
+
+import time
+import threading
+
+import os
+
 import numpy as np
-
-import tensorflow as tf
-from tensorflow.keras import models
-
-import record_helper as rh
-from tf_helper import preprocess_audiobuffer
-
-#Avoid OOM errors by setting GPU Memory Consumption Growth
-physical_devices = tf.config.experimental.list_physical_devices('GPU')
-if len(physical_devices) > 0:
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
-COMMANDS = ['00-odrzuc_bron', '01-obroc_sie', '02-na_kolana', '03-gleba', '04-rece_na_glowe', '05-tlo']
-
-loaded_model = models.load_model("model-85")
-
-
-def predict_mic():
-    audio = rh.record_audio()
-    spectrogram = preprocess_audiobuffer(audio)
-    prediction = loaded_model(spectrogram)
-    a = tf.nn.softmax(prediction)
-    print(a.numpy())
-    label_prediction = np.argmax(prediction, axis=1)
-    command = COMMANDS[label_prediction[0]]
-    print("Pred label:", command)
-    return command
-
 
 if __name__ == "__main__":
 
-    while True:
-        command = predict_mic()
+    main_settings = settings.MainSettings()
+
+    if not main_settings.is_ok():
+        print(main_settings.set_log)
+        exit()
+
+    udp_sender = sender.UdpSender(main_settings)
+    tensor_flow_helper = tensorflow.TensorflowHelper(main_settings)
+    audio_listener = audio_l.AudioListenerThread(1,main_settings)
+    audio_listener.start()
+
+    # Ustawienie czasu pomiędzy próbkami
+    sampling = 1 / main_settings.prediciotn_rate
+
+    #
+    predictions = []
+
+    try:
+        while True:
+            time_start = time.time()
+
+            #audio = audio_listener.get_audio_clear()
+            audio = audio_listener.get_audio()
+            
+            prediction = tensor_flow_helper.get_prediction(audio).numpy()[0].tolist()
+
+            if main_settings.predictions_per_update != 1:
+                if  predictions.__len__() < main_settings.predictions_per_update:
+                    predictions.append(prediction)
+                else:
+                    if main_settings.avg_mean == 1:
+                        output = np.mean(np.array(predictions),axis=0)
+                    elif main_settings.avg_median == 1:
+                        output = np.median(np.array(predictions),axis=0)
+
+                    threading.Thread(target=udp_sender.send, args=(output,)).start()
+                    predictions.clear()
+            else:
+                threading.Thread(target=udp_sender.send, args=(prediction,)).start()
+            
+            time_elapsed = time.time() - time_start
+            
+            # Wyczekanie do końca zadanego czasu
+            if  ( sampling > time_elapsed):
+                #print(sampling - time_elapsed)
+                time.sleep(sampling - time_elapsed)
+            else:
+                print("KUTANG KLAN")
+
+    except KeyboardInterrupt:
+        udp_sender.close()
+        audio_listener.stop()
+        exit()           

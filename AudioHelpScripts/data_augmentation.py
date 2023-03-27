@@ -206,7 +206,7 @@ def shift_audio_right(data, index_start, index_end, duration: float, sample_rate
 
 
 def thread_loop_task(start, end, data_set):
-    print(f"Thread {threading.current_thread().name} processing {end - start} samples.")
+    print(f"Wątek : {threading.current_thread().name} przetwarza {end - start} próbek.")
 
     for i, file_path in enumerate(data_set[start:end]):
         # Load oryginal audio
@@ -292,23 +292,20 @@ def thread_loop_task(start, end, data_set):
                                                           size=int(NEAREST_UP_DURATION * sample_rate))
                 ah.save_audio(file_name_new, data_shift_right, SAMPLE_RATE_REDUCTION)
         
-
-
-LOAD_DATA = '..\\DATA\\data_org_23'
-
-SAVE_DATA = '..\\DATA\\data_aug_23'
+LOAD_DATA = '..\\DATA\\data'
+SAVE_DATA = '..\\DATA\\data_aug'
 
 NUM_THREADS = 16
 
 SAMPLE_RATE = 44100  # HZ
 SAMPLE_RATE_REDUCTION = 16000
-FIX_TIME_DURATION = 3  # SECONDS
 DB_TRIM = 15
 
 AUGM_PARAM_ORG_COPY = True
 AUGM_PARAM_ORG_REDUCE = True
 
 NEAREST_UP_DURATION = 0
+NEAREST_UP_DURATION_MAX = 2
 
 SEMITONES_FACTOR_MIN = -2
 SEMITONES_FACTOR_MAX = 1
@@ -330,18 +327,30 @@ SHIFT_PERCENTAGE_OFFSET = [0.0, 0.075, 0.15]
 if __name__ == "__main__":
 
     file_paths = glob(LOAD_DATA + '\\*\\*.wav')
-    file_paths_length = len(file_paths[:])
+    file_paths_length = len(file_paths)
 
-    print("DATASET AUGMENTATION")
-    print(f"Loaded {file_paths_length} files.")
+    print("ROZSZERZANIE DANYCH WEJŚCIOWYCH UCZENIA MASZYNOWEGO")
+    print(f"Załadowano {file_paths_length} plików audio.")
 
     commands = ah.get_command_labels(LOAD_DATA)
-    print(f"Commands: {commands}")
+    print(f"Wykryte komendy: {commands}")
 
-    print(f"Calculate sample lengths ...")
-    lengths_array = np.zeros(file_paths_length)
+   
+   # Lista ścieżek audio które przeszły test długości
+    file_paths_passed = []
+    file_paths_passed_length = file_paths_passed.__len__()
 
-    for i, file_path in enumerate(file_paths[:]):
+    # Lista ścieżek audio które nie przeszły testu długości
+    file_paths_not_passed = []
+    file_paths_not_passed_length = file_paths_not_passed.__len__()
+
+    # Listy długości próbek
+    file_passed_durations = []
+    file_not_passed_duration = []
+
+    #Szukanie próbrk i pomiar długości
+    print(f"Szukanie próbki w pliku i obliczanie jej długości ...")
+    for i, file_path in enumerate(file_paths):
         # Update progress bar
         printProgressBar(i, file_paths_length, prefix='Progress:', suffix='Complete', length=50)
     
@@ -350,25 +359,33 @@ if __name__ == "__main__":
     
         # Trim Audio
         data_red_trim = get_red_trim(data, sample_rate, DB_TRIM)
+        
+        length = librosa.get_duration(y=data_red_trim, sr=sample_rate)
+
+        if length < NEAREST_UP_DURATION_MAX:
+
+            file_passed_durations.append(length)
+            file_paths_passed.append(file_path)
+        else:
+            file_not_passed_duration.append(length)
+            file_paths_not_passed.append(file_path)
     
-        lengths_array[i] = librosa.get_duration(y=data_red_trim, sr=sample_rate)
-    
-    print("Duration  min: " + str(lengths_array.min()) + file_paths[np.argmin(lengths_array)])
-    print("Duration  max: " + str(lengths_array.max()) + file_paths[np.argmax(lengths_array)])
-    print("Duration mean: " + str(lengths_array.mean()))
+    file_passed_durations = np.array(file_passed_durations)
+
+    print("Długość  min: " + str(file_passed_durations.min()) + "   " +  file_paths_passed[np.argmin(file_passed_durations)])
+    print("Długość  max: " + str(file_passed_durations.max()) + "   " +  file_paths_passed[np.argmax(file_passed_durations)])
+    print("Długość mean: " + str(file_passed_durations.mean()))
 
 
-    for i, len in enumerate(lengths_array):
-        if len >= 2.0 :
-            print(f"{len}   {file_paths[i]}")
-    #Get nearest upper duration in seconds
+    file_paths_passed_length = file_paths_passed.__len__()
+    file_paths_not_passed_length = file_paths_not_passed.__len__()
+    print(f"Liczba próbrk mieszczęcych się w zadanym progu {NEAREST_UP_DURATION_MAX} s. : {file_paths_passed_length}")
+    print(f"Liczba próbrk nie mieszczęcych się w zadanym progu {NEAREST_UP_DURATION_MAX} s. : {file_paths_not_passed_length}")
+
+
     #NEAREST_UP_DURATION = math.ceil(lengths_array.max()*100)/100
-    NEAREST_UP_DURATION = math.ceil(lengths_array.max())
-
-    #NEAREST_UP_DURATION = 3
-
-    # NEAREST_UP_DURATION = 2
-    print(f"NEAREST_UP_DURATION : {NEAREST_UP_DURATION} seconds")
+    NEAREST_UP_DURATION = math.ceil(file_passed_durations.max())
+    print(f"Najbliższa pełna długość próbki : {NEAREST_UP_DURATION} seconds")
 
     # Przygotowanie katalogu pod zapis
     ah.prepare_save_dir(SAVE_DATA, commands)
