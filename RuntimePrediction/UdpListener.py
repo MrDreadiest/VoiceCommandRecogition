@@ -11,7 +11,7 @@ with open(SETTINGS_FILE_UDP, 'r', encoding='utf-8') as f:
         settings = json.load(f)  # 👈️ parse the JSON with load()
         
         IP_ADDRESS = settings['ip_address']
-        PORT = settings['port']
+        PORT = int(settings['port'])
 
         print(f"UDP SETTINGS: {IP_ADDRESS}:{PORT}")
     except BaseException as e:
@@ -22,15 +22,10 @@ if __name__ == "__main__":
     # # Create a UDP socket and bind it to the specified IP address and port
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((IP_ADDRESS, PORT))
-
     # Receive data sent to the port
     while True:
         try:
-            try:
-                data, addr = server_socket.recvfrom(1024)
-                print("Received data from {}: {}".format(addr, data))
-            except:
-                pass
-        except KeyboardInterrupt:
-            server_socket.close()
-            exit()
+            data, addr = server_socket.recvfrom(1024)
+            print("Received data from {}: {}".format(addr, data))
+        except BaseException:
+            print(BaseException)

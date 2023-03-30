@@ -46,7 +46,7 @@ with open(SETTINGS_FILE_UDP, 'r', encoding='utf-8') as f:
         settings = json.load(f)  # 👈️ parse the JSON with load()
         
         IP_ADDRESS = settings['ip_address']
-        PORT = settings['port']
+        PORT = int(settings['port'])
         COMMANDS = settings['commands']
 
         print(f"UDP SETTINGS: {IP_ADDRESS}:{PORT}")

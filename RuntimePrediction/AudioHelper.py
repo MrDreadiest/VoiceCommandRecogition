@@ -1,12 +1,8 @@
-import sys
 import os
-import wave
-import math
 from glob import glob
 import matplotlib.pyplot as plt
 
 import numpy as np
-import random
 
 import librosa
 import librosa.display
@@ -20,7 +16,6 @@ def add_white_noise(data, noise_percentage_factor):
     noise = np.random.normal(0, data.std(), data.size)
     augmented_data = data + noise * noise_percentage_factor
     return augmented_data
-
 
 def pitch_scale(data, sr, semitones_factor):
     return librosa.effects.pitch_shift(y=data, sr=sr, n_steps=semitones_factor)
@@ -141,10 +136,6 @@ def prepare_save_dir(mian_save_dir, commands):
 def load_audio(file_path, sample_rate):
     data, _ = librosa.load(file_path, sr=sample_rate)
     return data
-
-
-
-
 
 # Print iterations progress
 def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):

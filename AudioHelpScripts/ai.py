@@ -18,19 +18,16 @@ import AudioHelper as ah
 
 
 LOAD_DATA = '..\\DATA\\data_org_1'
-SAVE_DATA = '..\\DATA\\data_test_clear'
+SAVE_DATA = '..\\DATA\\data_test_clear_3s'
 SAMPLE_RATE_REDUCTION = 16000
-FIX_TIME_DURATION = 2
-
-attempt = 0
-human = 0
+FIX_TIME_DURATION = 3
 
 if __name__ == "__main__":
     
     file_paths = glob(LOAD_DATA + '\\*\\*.wav')
     file_paths_length = len(file_paths)
 
-    print("ROZSZERZANIE DANYCH WEJŚCIOWYCH UCZENIA MASZYNOWEGO")
+    print("Wyrównywanie długości krótkich z początku plików")
     print(f"Załadowano {file_paths_length} plików audio.")
 
     commands = ah.get_command_labels(LOAD_DATA)
@@ -46,11 +43,14 @@ if __name__ == "__main__":
         # Load data
         data, sample_rate = librosa.load(file_path, sr=SAMPLE_RATE_REDUCTION)
 
+        data = np.concatenate((np.zeros(sample_rate*1),data))
+        data = nr.reduce_noise(y=data, sr=sample_rate)
         data = librosa.util.fix_length(data, size=int(FIX_TIME_DURATION * sample_rate))
-        data = nr.reduce_noise(data,sample_rate)
+
 
         command = ah.get_label(file_path)
         command_id = commands.index(command)
 
         filename = ah.get_file_name(file_path)
+
         ah.save_audio(os.path.join(SAVE_DATA,command,filename),data,sample_rate)

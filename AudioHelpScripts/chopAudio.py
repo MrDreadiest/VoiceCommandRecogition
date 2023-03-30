@@ -1,3 +1,5 @@
+# python .\chopAudio.py ..\\DATA\\noise ..\\DATA\\data_aug_3s\\05-tlo 16000 3  
+
 import sys
 import os
 import wave
@@ -49,14 +51,6 @@ if __name__ == "__main__":
         frames_per_clip = sample_rate * chop_duration
         number_of_chops = math.floor(data.__len__() / frames_per_clip)
 
-        if number_of_chops == 0:
-            data = librosa.util.fix_length(data, size=int(3 * sample_rate))
-
-            file_name, _= ah.split_file_name(ah.get_file_name(file_path))
-
-            file_path_new = ah.get_next_path(save_main_dir,ah.get_label(file_path),file_name)
-            ah.save_audio(file_path_new, data, sample_rate)
-
         for i in range(0, number_of_chops):
             frame_start = int(i * frames_per_clip)
             frame_end = int((i + 1) * frames_per_clip)
@@ -64,6 +58,8 @@ if __name__ == "__main__":
             choped_data = data[frame_start: frame_end]
 
             file_path_new = ah.get_new_file_name(save_main_dir, file_path)
+
+            choped_data = librosa.util.fix_length(choped_data, size=int(chop_duration * sample_rate))
 
             ah.save_audio(file_path_new, choped_data, sample_rate)
 

@@ -17,10 +17,44 @@ import noisereduce as nr
 import AudioHelper as ah
 
 
+LOAD_DATA = '..\\DATA\\data'
+SAVE_DATA = '..\\DATA\\data_aug_3s'
+
+NUM_THREADS = 8
+NUM_WORKED_THREADS = 0
+
+SAMPLE_RATE_REDUCTION = 16000
+DB_TRIM = 20
+
+AUGM_PARAM_ORG_COPY = True
+AUGM_PARAM_ORG_REDUCE = True
+
+NEAREST_UP_DURATION = 0
+NEAREST_UP_DURATION_MAX = 3
+
+SEMITONES_FACTOR_MIN = -2
+SEMITONES_FACTOR_MAX = 1
+
+GAIN_FACTOR_MIN = 1.0
+GAIN_FACTOR_MAX = 10.0
+
+NOISE_PERCENTAGE_FACTOR_MIN = 0.00
+NOISE_PERCENTAGE_FACTOR_MAX = 0.01
+
+TIME_STRETCH_RATE_MIN = 0.5
+TIME_STRETCH_RATE_MAX = 1.5
+
+INVERSE_POLARITY_MIN = 0
+INVERSE_POLARITY_MAX = 1
+
+SHIFT_PERCENTAGE_OFFSET = [0.0, 0.075, 0.15]
+
+
 def reduce_noise(data, sample_rate, noisy_part_start=0.0, noisy_part_end=1.0):
     # perform noise reduction
     noisy_part = data[int(noisy_part_start * sample_rate):int(noisy_part_end * sample_rate)]
-    data_reduced = nr.reduce_noise(y=data, y_noise=noisy_part, sr=sample_rate)
+    #data_reduced = nr.reduce_noise(y=data, y_noise=noisy_part, sr=sample_rate)
+    data_reduced = nr.reduce_noise(y=data, sr=sample_rate)
 
     return data_reduced
 
@@ -120,47 +154,61 @@ def shift_audio_center(data, index_start, index_end, duration: float, sample_rat
     output = np.zeros(output_duration)
 
     if (output_duration - input_duration) % 2 != 0:
-        zero_padding_left = np.zeros(math.floor((output_duration - input_duration) / 2))
-        zero_padding_right = np.zeros(math.ceil((output_duration - input_duration) / 2))
+        if math.floor((output_duration - input_duration) / 2) > 0:
+            zero_padding_left = np.zeros(math.floor((output_duration - input_duration) / 2))
+            zero_padding_right = np.zeros(math.ceil((output_duration - input_duration) / 2))
+        else:
+            zero_padding_left = np.zeros([])
+            zero_padding_right = np.zeros([])
     else:
-        zero_padding_left = np.zeros(int((output_duration - input_duration) / 2))
-        zero_padding_right = np.zeros(int((output_duration - input_duration) / 2))
-
-    # Wypełnienie lewej strony
-    if zero_padding_left.__len__() > 0:
-
-        data_left = data[:index_start]
-        data_left_length = data_left.__len__()
-
-        # print(f"data_left_length: {data_left_length}")
-        # print(f"zero_padding_left: {zero_padding_left.__len__()}")
-
-        # Dane orginalne pokryją część lub nie
-        if data_left_length >= zero_padding_left.__len__():
-            if zero_padding_left.__len__() > 0:
-                zero_padding_left = data_left[data_left_length - zero_padding_left.__len__():]
+        if int((output_duration - input_duration) / 2) > 0:
+            zero_padding_left = np.zeros(int((output_duration - input_duration) / 2))
+            zero_padding_right = np.zeros(int((output_duration - input_duration) / 2))
         else:
-            if zero_padding_left.__len__() > 0:
-                for i in range(0, data_left_length):
-                    zero_padding_left[(i + 1) * -1] = data_left[(i + 1) * -1]
+            zero_padding_left = np.zeros([])
+            zero_padding_right = np.zeros([])
 
-    # Wypełnienie prawej strony
-    if zero_padding_right.__len__() > 0:
+    try:
+        # Wypełnienie lewej strony
+        if zero_padding_left.__len__() > 0:
 
-        data_right = data[index_end:]
-        data_right_length = data_right.__len__()
+            data_left = data[:index_start]
+            data_left_length = data_left.__len__()
 
-        # print(f"data_right_length: {data_right_length}")
-        # print(f"zero_padding_right: {zero_padding_right.__len__()}")
+            # print(f"data_left_length: {data_left_length}")
+            # print(f"zero_padding_left: {zero_padding_left.__len__()}")
 
-        # Dane orginalne pokryją część lub nie
-        if data_right_length >= zero_padding_right.__len__():
-            if zero_padding_right.__len__() > 0:
-                zero_padding_right = data_right[:data_right_length - zero_padding_right.__len__()]
-        else:
-            if zero_padding_right.__len__() > 0:
-                for i in range(0, data_right_length):
-                    zero_padding_right[i] = data_right[i]
+            # Dane orginalne pokryją część lub nie
+            if data_left_length >= zero_padding_left.__len__():
+                if zero_padding_left.__len__() > 0:
+                    zero_padding_left = data_left[data_left_length - zero_padding_left.__len__():]
+            else:
+                if zero_padding_left.__len__() > 0:
+                    for i in range(0, data_left_length):
+                        zero_padding_left[(i + 1) * -1] = data_left[(i + 1) * -1]
+    except:
+        pass
+
+    try:
+        # Wypełnienie prawej strony
+        if zero_padding_right.__len__() > 0:
+
+            data_right = data[index_end:]
+            data_right_length = data_right.__len__()
+
+            # print(f"data_right_length: {data_right_length}")
+            # print(f"zero_padding_right: {zero_padding_right.__len__()}")
+
+            # Dane orginalne pokryją część lub nie
+            if data_right_length >= zero_padding_right.__len__():
+                if zero_padding_right.__len__() > 0:
+                    zero_padding_right = data_right[:data_right_length - zero_padding_right.__len__()]
+            else:
+                if zero_padding_right.__len__() > 0:
+                    for i in range(0, data_right_length):
+                        zero_padding_right[i] = data_right[i]
+    except:
+        pass
 
     output = np.concatenate((zero_padding_left, data[index_start:index_end], zero_padding_right))
 
@@ -291,38 +339,6 @@ def thread_loop_task(start, end, data_set):
                 data_shift_right = librosa.util.fix_length(data_shift_right,
                                                           size=int(NEAREST_UP_DURATION * sample_rate))
                 ah.save_audio(file_name_new, data_shift_right, SAMPLE_RATE_REDUCTION)
-        
-LOAD_DATA = '..\\DATA\\data'
-SAVE_DATA = '..\\DATA\\data_aug'
-
-NUM_THREADS = 16
-
-SAMPLE_RATE = 44100  # HZ
-SAMPLE_RATE_REDUCTION = 16000
-DB_TRIM = 15
-
-AUGM_PARAM_ORG_COPY = True
-AUGM_PARAM_ORG_REDUCE = True
-
-NEAREST_UP_DURATION = 0
-NEAREST_UP_DURATION_MAX = 2
-
-SEMITONES_FACTOR_MIN = -2
-SEMITONES_FACTOR_MAX = 1
-
-GAIN_FACTOR_MIN = 1.0
-GAIN_FACTOR_MAX = 10.0
-
-NOISE_PERCENTAGE_FACTOR_MIN = 0.00
-NOISE_PERCENTAGE_FACTOR_MAX = 0.01
-
-TIME_STRETCH_RATE_MIN = 0.5
-TIME_STRETCH_RATE_MAX = 1.5
-
-INVERSE_POLARITY_MIN = 0
-INVERSE_POLARITY_MAX = 1
-
-SHIFT_PERCENTAGE_OFFSET = [0.0, 0.075, 0.15]
 
 if __name__ == "__main__":
 
@@ -391,13 +407,13 @@ if __name__ == "__main__":
     ah.prepare_save_dir(SAVE_DATA, commands)
 
     threads = []
-    total_tasks = file_paths_length
+    total_tasks = file_paths_passed_length
     tasks_per_thread = total_tasks // NUM_THREADS
 
     for i in range(NUM_THREADS):
         start = i * tasks_per_thread
         end = (i + 1) * tasks_per_thread if i < NUM_THREADS - 1 else total_tasks
-        t = threading.Thread(target=thread_loop_task, args=(start, end, file_paths))
+        t = threading.Thread(target=thread_loop_task, args=(start, end, file_paths_passed))
         threads.append(t)
         t.start()
 
